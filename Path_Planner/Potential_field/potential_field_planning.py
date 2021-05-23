@@ -2,7 +2,8 @@
 
 Potential Field based path planner
 
-author: Atsushi Sakai (@Atsushi_twi)
+author: Xudong Zhuang (xzhuangad@connect.ust.hk)
+        Atsushi Sakai (@Atsushi_twi)
 
 Ref:
 https://www.cs.cmu.edu/~motionplanning/lecture/Chap4-Potential-Field_howie.pdf
@@ -12,6 +13,7 @@ https://www.cs.cmu.edu/~motionplanning/lecture/Chap4-Potential-Field_howie.pdf
 from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 # Parameters
 KP = 5.0  # attractive potential gain
@@ -186,8 +188,11 @@ def main():
         plt.axis("equal")
 
     # path generation
+    start_time = time.time()
     _, _ = potential_field_planning(
         sx, sy, gx, gy, ox, oy, grid_size, robot_radius)
+    end_time = time.time()
+    print("The total time for artificial potential field path planner is " + str(float(end_time - start_time)))
 
     if show_animation:
         plt.show()

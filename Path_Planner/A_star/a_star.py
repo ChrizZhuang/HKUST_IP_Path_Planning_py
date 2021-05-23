@@ -13,6 +13,8 @@ import math
 
 import matplotlib.pyplot as plt
 
+import time 
+
 show_animation = True
 
 
@@ -236,31 +238,33 @@ def main():
     # start and goal position
     sx = 10.0  # [m]
     sy = 10.0  # [m]
-    gx = 50.0  # [m]
-    gy = 50.0  # [m]
+    gx = 45.0  # [m]
+    gy = 45.0  # [m]
     grid_size = 2.0  # [m]
     robot_radius = 1.0  # [m]
 
     # set obstacle positions
     ox, oy = [], []
-    for i in range(-10, 60):
+    # set the boundary of the map
+    for i in range(0, 50):
         ox.append(i)
-        oy.append(-10.0)
-    for i in range(-10, 60):
-        ox.append(60.0)
+        oy.append(0)
+    for i in range(0, 50):
+        ox.append(50.0)
         oy.append(i)
-    for i in range(-10, 61):
+    for i in range(0, 50):
         ox.append(i)
-        oy.append(60.0)
-    for i in range(-10, 61):
-        ox.append(-10.0)
+        oy.append(50.0)
+    for i in range(0, 50):
+        ox.append(0)
         oy.append(i)
-    for i in range(-10, 40):
-        ox.append(20.0)
+    # set the obstable inside the map
+    for i in range(0, 20):
+        ox.append(20)
         oy.append(i)
-    for i in range(0, 40):
-        ox.append(40.0)
-        oy.append(60.0 - i)
+    for i in range(0, 30):
+        ox.append(30)
+        oy.append(50 - i)
 
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
@@ -269,8 +273,11 @@ def main():
         plt.grid(True)
         plt.axis("equal")
 
+    start_time = time.time()
     a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
     rx, ry = a_star.planning(sx, sy, gx, gy)
+    end_time = time.time()
+    print("The total time for A* path planner is " + str(float(end_time - start_time)))
 
     if show_animation:  # pragma: no cover
         plt.plot(rx, ry, "-r")

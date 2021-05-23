@@ -2,7 +2,8 @@
 
 D* grid planning
 
-author: Nirnay Roy
+author: Xudong Zhuang (xzhuangad@connect.ust.hk)
+        Nirnay Roy
 
 See Wikipedia article (https://en.wikipedia.org/wiki/D*)
 
@@ -12,6 +13,8 @@ import math
 from sys import maxsize
 
 import matplotlib.pyplot as plt
+
+import time
 
 show_animation = True
 
@@ -230,8 +233,11 @@ def main():
 
     start = m.map[start[0]][start[1]]
     end = m.map[goal[0]][goal[1]]
+    start_time = time.time()
     dstar = Dstar(m)
     rx, ry = dstar.run(start, end)
+    end_time = time.time()
+    print("The total time for D* path planner is " + str(float(end_time - start_time)))
 
     if show_animation:
         plt.plot(rx, ry, "-r")
