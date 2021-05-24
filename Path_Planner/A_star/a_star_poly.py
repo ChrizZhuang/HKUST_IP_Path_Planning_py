@@ -11,10 +11,10 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 """
 
 import math
-
 import matplotlib.pyplot as plt
-
-import time 
+import time
+import numpy as np
+from numpy.core.defchararray import index
 
 show_animation = True
 
@@ -232,6 +232,64 @@ class AStarPlanner:
 
         return motion
 
+def calc_total_dist(rx, ry, sx, sy, gx, gy):
+    """calculate the total path length"""
+    dist = 0
+    assert (len(rx) == len(ry))
+    if rx[0] != gx and ry[0] != gy:
+        rx.insert(0, gx)
+        ry.insert(0, gy)
+    if rx[len(rx)-1] != sx and ry[len(ry)-1] != sy:
+        rx.append(sx)
+        ry.append(sy)
+    for i in range(len(rx)-1):
+        dist += np.linalg.norm([rx[i] - rx[i+1], ry[i] - ry[i+1]])
+
+    return dist
+
+
+def calc_dist(rx, ry, sx, sy, tx, ty, total_dist):
+    dist = 0
+    assert (len(rx) == len(ry))
+    if rx[len(rx)-1] != sx and ry[len(ry)-1] != sy:
+        rx.append(sx)
+        ry.append(sy)
+    # get the index of target point
+    for i in range(len(rx)):
+        if rx[i] == tx and ry[i] == ty:
+            index = i
+    
+    for i in range(0, index):
+        dist += np.linalg.norm([rx[i] - rx[i+1], ry[i] - ry[i+1]])
+
+    return total_dist - dist
+
+def select_index(rx, ry, num_sec):
+    """select index with respect to number of segmentation"""
+    assert (len(rx) == len(ry))
+    num_pt = 4 * num_sec
+    num_interval = num_pt - 1
+    index_list = []
+    length_interval = len(rx) // num_interval
+    for i in range(num_pt):
+        index_list.append(i*length_interval)
+    if index_list[len(index_list)-1] != len(rx)-1:
+        index_list[len(index_list)-1] = len(rx)-1
+    return index_list
+
+def get_time(curr_dist, total_path_length, ts, tf):
+    return curr_dist * (tf - ts)/total_path_length
+
+def get_data(rx, ry, times, selected_index):
+    rx_selected = []
+    ry_selected = []
+    time_selected = []
+    for i in range(len(selected_index)):
+        rx_selected.append(rx[selected_index[i]])
+        ry_selected.append(ry[selected_index[i]])
+        time_selected.append(times[selected_index[i]])
+
+    return rx_selected, ry_selected, time_selected
 
 def main():
     print(__file__ + " start!!")
@@ -243,7 +301,9 @@ def main():
     gy = 45.0  # [m]
     grid_size = 2.0  # [m]
     robot_radius = 1.0  # [m]
-    density = 2
+    t_start = 0 # [s]
+    t_final = 2 # [s]
+
 
     # set obstacle positions
     ox, oy = [], []
@@ -278,9 +338,33 @@ def main():
     start_time = time.time()
     a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
     rx, ry = a_star.planning(sx, sy, gx, gy)
-    
     end_time = time.time()
     print("The total time for A* path planner is " + str(float(end_time - start_time)))
+
+    total_path_length = calc_total_dist(rx, ry, sx, sy, gx, gy)
+    assert (len(rx) == len(ry))
+    print("The distance of the planned path is " + str(total_path_length))
+    #print(rx[0], ry[0])
+    #print(rx[1], ry[1])
+    #print(rx[len(rx)-1], ry[len(ry)-1])
+    dist_list = []
+    time_list = []
+    calc_dist(rx, ry, sx, sy, rx[1], ry[1], total_path_length)
+    for i in range(len(rx)):
+        curr_dist = calc_dist(rx, ry, sx, sy, rx[i], ry[i], total_path_length)
+        dist_list.append(curr_dist)
+        time_list.append(get_time(curr_dist, total_path_length, t_start, t_final))
+    assert(len(dist_list) == len(rx))
+    #print(time_list)
+    #print(np.linalg.norm([rx[0] - rx[1], rx[0] - rx[1]]))
+    #print(len(rx))
+    index_list = select_index(rx, ry, 2)
+    #print(index_list)
+    rx_selected, ry_selected, time_selected = get_data(rx, ry, time_list, index_list)
+    print(rx_selected)
+    print(ry_selected)
+    print(time_selected)
+
     
     if show_animation:  # pragma: no cover
         plt.plot(rx, ry, "-r")

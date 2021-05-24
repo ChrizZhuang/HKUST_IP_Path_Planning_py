@@ -2,7 +2,8 @@
 
 A* grid planning
 
-author: Atsushi Sakai(@Atsushi_twi)
+author: Xudong Zhuang (xzhuangad@connect.ust.hk)
+        Atsushi Sakai(@Atsushi_twi)
         Nikos Kanargias (nkana@tee.gr)
 
 See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
