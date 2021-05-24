@@ -14,7 +14,7 @@ import math
 import matplotlib.pyplot as plt
 import time
 import numpy as np
-from numpy.core.defchararray import index
+import sympy as sym
 
 show_animation = True
 
@@ -291,6 +291,62 @@ def get_data(rx, ry, times, selected_index):
 
     return rx_selected, ry_selected, time_selected
 
+def calc_parameter_single_sec(a_init, v_init, p_init, p_final, t_start, t_final):
+    A = np.array([[6 * t_start, 2, 0, 0],
+             [3 * t_start**2, 2 * t_start, 1, 0],
+             [t_start**3, t_start**2, t_start, 1],
+             [t_final**3, t_final**2, t_final, 1]])
+    B = np.array([a_init, v_init, p_init, p_final])
+    return np.linalg.inv(A).dot(B)
+
+def calc_parameter_last_sec(a_init, a_final, v_init, v_final, p_init, p_final, t_start, t_final):
+    A = np.array([[20 * t_start**3, 12 * t_start**2, 6 * t_start, 2, 0, 0],
+             [20 * t_final**3, 12 * t_final**2, 6 * t_final, 2, 0, 0],
+             [5 * t_start**4, 4 * t_start**3, 3 * t_start**2, 2 * t_start, 1, 0],
+             [5 * t_final**4, 4 * t_final**3, 3 * t_final**2, 2 * t_final, 1, 0],
+             [t_start**5, t_start**4, t_start**3, t_start**2, t_start, 1],
+             [t_final**5, t_final**4, t_final**3, t_final**2, t_final, 1]])
+    B = np.array([a_init, a_final, v_init, v_final, p_init, p_final])
+    return np.linalg.inv(A).dot(B)
+
+def calc_spline_single(num_sec, pos_selected, time_list):
+    """ calculate parameters for x or y """
+    a_s, b_s, c_s, d_s = [], [], [], []
+    accel_list = [0]
+    vel_list = [0]
+    # calculate the parameters for x except the last segment
+    for i in range(1, num_sec):
+        para_list = calc_parameter_single_sec(accel_list[i-1], vel_list[i-1], pos_selected[4*(i-1)+1], 
+                    pos_selected[4*i], time_list[4*(i-1)+1], time_list[4*i])
+        a_s.append[para_list[0]]
+        b_s.append[para_list[1]]
+        c_s.append[para_list[2]]
+        d_s.append[para_list[3]]
+        accel_list.append(6 * para_list[0] * time_list[4*i] + 2 * para_list[1])
+        vel_list.append(3 * para_list[0] * time_list[4*i]**2 + 2 * para_list[1] * time_list[4*i] + para_list[2])
+    # calculate the parameters for x for the last segment
+    para_list = calc_parameter_last_sec(accel_list[len(accel_list)-1], 0, vel_list[len(vel_list)-1], 0, 
+                pos_selected[len(pos_selected)-4], pos_selected[len(pos_selected)-1], time_list[len(time_list)-4], time_list[len(time_list)-1])
+    a_s.append[para_list[0]]
+    b_s.append[para_list[1]]
+    c_s.append[para_list[2]]
+    d_s.append[para_list[3]]
+    e = para_list[4]
+    f = para_list[5]
+
+    return a_s, b_s, c_s, d_s, e, f
+
+def calc_spline(num_sec, rx_selected, ry_selected, time_list):
+    a_xs, b_xs, c_xs, d_xs, e_x, f_x = calc_spline_single(num_sec, rx_selected, time_list)
+    a_ys, b_ys, c_ys, d_ys, e_y, f_y = calc_spline_single(num_sec, ry_selected, time_list)
+    return [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]]
+
+
+
+
+
+
+
 def main():
     print(__file__ + " start!!")
 
@@ -355,15 +411,15 @@ def main():
         dist_list.append(curr_dist)
         time_list.append(get_time(curr_dist, total_path_length, t_start, t_final))
     assert(len(dist_list) == len(rx))
-    #print(time_list)
-    #print(np.linalg.norm([rx[0] - rx[1], rx[0] - rx[1]]))
-    #print(len(rx))
+  
     index_list = select_index(rx, ry, 2)
-    #print(index_list)
+
     rx_selected, ry_selected, time_selected = get_data(rx, ry, time_list, index_list)
-    print(rx_selected)
-    print(ry_selected)
-    print(time_selected)
+    #print(rx_selected)
+    #print(ry_selected)
+    #print(time_selected)
+
+    
 
     
     if show_animation:  # pragma: no cover

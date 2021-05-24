@@ -11,9 +11,7 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 """
 
 import math
-
 import matplotlib.pyplot as plt
-
 import time 
 
 show_animation = True
