@@ -267,7 +267,7 @@ def calc_dist(rx, ry, sx, sy, tx, ty, total_dist):
 def select_index(rx, ry, num_sec):
     """select index with respect to number of segmentation"""
     assert (len(rx) == len(ry))
-    num_pt = 4 * num_sec - num_sec + 1
+    num_pt = num_sec + 1
     num_interval = num_pt - 1
     index_list = []
     length_interval = len(rx) // num_interval
@@ -316,17 +316,17 @@ def calc_spline_single(num_sec, pos_selected, time_list):
     vel_list = [0]
     # calculate the parameters for x except the last segment
     for i in range(1, num_sec):
-        para_list = calc_parameter_single_sec(accel_list[i-1], vel_list[i-1], pos_selected[4*(i-1)+1], 
-                    pos_selected[4*i], time_list[4*(i-1)+1], time_list[4*i])
+        para_list = calc_parameter_single_sec(accel_list[i-1], vel_list[i-1], pos_selected[i-1], 
+                    pos_selected[i], time_list[i-1], time_list[i])
         a_s.append(para_list[0])
         b_s.append(para_list[1])
         c_s.append(para_list[2])
         d_s.append(para_list[3])
-        accel_list.append(6 * para_list[0] * time_list[4*i] + 2 * para_list[1])
-        vel_list.append(3 * para_list[0] * time_list[4*i]**2 + 2 * para_list[1] * time_list[4*i] + para_list[2])
+        accel_list.append(6 * para_list[0] * time_list[i] + 2 * para_list[1])
+        vel_list.append(3 * para_list[0] * time_list[i]**2 + 2 * para_list[1] * time_list[i] + para_list[2])
     # calculate the parameters for x for the last segment
     para_list = calc_parameter_last_sec(accel_list[len(accel_list)-1], 0, vel_list[len(vel_list)-1], 0, 
-                pos_selected[len(pos_selected)-4], pos_selected[len(pos_selected)-1], time_list[len(time_list)-4], time_list[len(time_list)-1])
+                pos_selected[len(pos_selected)-2], pos_selected[len(pos_selected)-1], time_list[len(time_list)-2], time_list[len(time_list)-1])
     a_s.append(para_list[0])
     b_s.append(para_list[1])
     c_s.append(para_list[2])
@@ -343,6 +343,17 @@ def calc_spline(num_sec, rx_selected, ry_selected, time_list):
     return [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]]
 
 
+def get_positions(a_s, b_s, c_s, d_s, e, f, time_list, time, num_sec):
+    # get the index of spline
+    for i in range(num_sec):
+        if time <= time_list[i] and time >= time_list[i+1]:
+            index = i
+    
+    # return the position
+    if index == len(time_list)-1: 
+        return a_s[index] * time**5 + b_s[index] * time**4 + c_s[index] * time**3 + d_s[index] * time**2 + e * time + f
+    else:
+        return a_s[index] * time**3 + b_s[index] * time**2 + c_s[index] * time + d_s[index]
 
 
 
@@ -360,7 +371,6 @@ def main():
     robot_radius = 1.0  # [m]
     t_start = 0 # [s]
     t_final = 2 # [s]
-    num_sec = 2
 
 
     # set obstacle positions
@@ -402,9 +412,7 @@ def main():
     total_path_length = calc_total_dist(rx, ry, sx, sy, gx, gy)
     assert (len(rx) == len(ry))
     print("The distance of the planned path is " + str(total_path_length))
-    #print(rx[0], ry[0])
-    #print(rx[1], ry[1])
-    #print(rx[len(rx)-1], ry[len(ry)-1])
+
     dist_list = []
     time_list = []
     for i in range(len(rx)):
@@ -412,22 +420,42 @@ def main():
         dist_list.append(curr_dist)
         time_list.append(get_time(curr_dist, total_path_length, t_start, t_final))
     assert(len(dist_list) == len(rx))
-  
+    
+    num_sec = 20
+    # calculate the splines for x and y with respect to time
     index_list = select_index(rx, ry, num_sec)
-    #print(index_list)
 
     rx_selected, ry_selected, time_selected = get_data(rx, ry, time_list, index_list)
-    print(rx_selected)
-    print(ry_selected)
-    print(time_selected)
+    
+    [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]] = calc_spline(num_sec, rx_selected, ry_selected, time_selected)
+   
+    times = np.linspace(0, t_final, 50)
+    xs = []
+    ys = []
 
-    [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]] = calc_spline(num_sec, rx_selected, ry_selected, time_list)
+    for t in times:
+        xs.append(get_positions(a_xs, b_xs, c_xs, d_xs, e_x, f_x, time_selected, t, num_sec))
+        ys.append(get_positions(a_ys, b_ys, c_ys, d_ys, e_y, f_y, time_selected, t, num_sec))
+        #if show_animation:  # pragma: no cover
+         #   plt.plot(xs, ys, "go")
+         #   plt.pause(0.001)
+         #   plt.show()
+
+
+
+
+        # see if it is overlapped by obstacles
 
     
-
+    print(xs)
     
     if show_animation:  # pragma: no cover
+        plt.xlim(-10, 70)
+        plt.ylim(-10, 70)
         plt.plot(rx, ry, "-r")
+    
+        #plt.plot(xs, ys, "ro")
+        plt.plot(rx_selected, ry_selected, "go")
         plt.pause(0.001)
         plt.show()
 
