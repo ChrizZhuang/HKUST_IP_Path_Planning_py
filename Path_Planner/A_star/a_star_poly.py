@@ -346,11 +346,11 @@ def calc_spline(num_sec, rx_selected, ry_selected, time_list):
 def get_positions(a_s, b_s, c_s, d_s, e, f, time_list, time, num_sec):
     # get the index of spline
     for i in range(num_sec):
-        if time <= time_list[i] and time >= time_list[i+1]:
+        if time >= time_list[i] and time <= time_list[i+1]:
             index = i
     
     # return the position
-    if index == len(time_list)-1: 
+    if index == num_sec: 
         return a_s[index] * time**5 + b_s[index] * time**4 + c_s[index] * time**3 + d_s[index] * time**2 + e * time + f
     else:
         return a_s[index] * time**3 + b_s[index] * time**2 + c_s[index] * time + d_s[index]
@@ -409,6 +409,10 @@ def main():
     end_time = time.time()
     print("The total time for A* path planner is " + str(float(end_time - start_time)))
 
+    #rx = np.linspace(sx, gx, 100).tolist()
+    #rx.reverse()
+    #ry = np.linspace(sy, gy, 100).tolist()
+    #ry.reverse()
     total_path_length = calc_total_dist(rx, ry, sx, sy, gx, gy)
     assert (len(rx) == len(ry))
     print("The distance of the planned path is " + str(total_path_length))
@@ -426,35 +430,46 @@ def main():
     index_list = select_index(rx, ry, num_sec)
 
     rx_selected, ry_selected, time_selected = get_data(rx, ry, time_list, index_list)
-    
+    #print(time_selected)
+    # rx_selected, ry_selected, time_selected are all from goal to starting point
+    rx_selected.reverse()
+    ry_selected.reverse()
+    time_selected.reverse()
     [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]] = calc_spline(num_sec, rx_selected, ry_selected, time_selected)
-   
-    times = np.linspace(0, t_final, 50)
+    print(time_selected)
+    print(rx_selected)
+    print(ry_selected)
+    print(str(a_xs[1]) + " " + str(a_ys[1]))
+    print(str(b_xs[1]) + " " + str(b_ys[1]))
+    print(str(c_xs[1]) + " " + str(c_ys[1]))
+    print(str(d_xs[1]) + " " + str(d_ys[1]))
+    #print(e_x)
+    #print(f_x)
+    #print(a_xs)
+    times = np.linspace(0, 0.5, 50)
     xs = []
     ys = []
-
+    #x = get_positions(a_xs, b_xs, c_xs, d_xs, e_x, f_x, time_selected, 0.01, num_sec)
+    #y = get_positions(a_ys, b_ys, c_ys, d_ys, e_y, f_y, time_selected, 0.01, num_sec)
+    #print(str(x) + " " + str(y))
     for t in times:
         xs.append(get_positions(a_xs, b_xs, c_xs, d_xs, e_x, f_x, time_selected, t, num_sec))
         ys.append(get_positions(a_ys, b_ys, c_ys, d_ys, e_y, f_y, time_selected, t, num_sec))
-        #if show_animation:  # pragma: no cover
-         #   plt.plot(xs, ys, "go")
-         #   plt.pause(0.001)
-         #   plt.show()
+        
 
 
 
 
         # see if it is overlapped by obstacles
 
-    
-    print(xs)
+
     
     if show_animation:  # pragma: no cover
         plt.xlim(-10, 70)
         plt.ylim(-10, 70)
         plt.plot(rx, ry, "-r")
-    
-        #plt.plot(xs, ys, "ro")
+ 
+        plt.plot(xs, ys, "ro")
         plt.plot(rx_selected, ry_selected, "go")
         plt.pause(0.001)
         plt.show()
