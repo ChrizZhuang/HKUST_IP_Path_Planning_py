@@ -314,33 +314,37 @@ def calc_spline_single(num_sec, pos_selected, time_list):
     a_s, b_s, c_s, d_s = [], [], [], []
     accel_list = [0]
     vel_list = [0]
-    # calculate the parameters for x except the last segment
+    # calculate the parameters for x/y except the last segment
     for i in range(1, num_sec):
         para_list = calc_parameter_single_sec(accel_list[i-1], vel_list[i-1], pos_selected[i-1], 
                     pos_selected[i], time_list[i-1], time_list[i])
+        assert (len(para_list) == 4)
         a_s.append(para_list[0])
         b_s.append(para_list[1])
         c_s.append(para_list[2])
         d_s.append(para_list[3])
         accel_list.append(6 * para_list[0] * time_list[i] + 2 * para_list[1])
         vel_list.append(3 * para_list[0] * time_list[i]**2 + 2 * para_list[1] * time_list[i] + para_list[2])
-    # calculate the parameters for x for the last segment
+    # calculate the parameters for x/y for the last segment
     para_list = calc_parameter_last_sec(accel_list[len(accel_list)-1], 0, vel_list[len(vel_list)-1], 0, 
                 pos_selected[len(pos_selected)-2], pos_selected[len(pos_selected)-1], time_list[len(time_list)-2], time_list[len(time_list)-1])
+    assert (len(para_list) == 6)
     a_s.append(para_list[0])
     b_s.append(para_list[1])
     c_s.append(para_list[2])
     d_s.append(para_list[3])
     e = para_list[4]
     f = para_list[5]
+    accel_list.append(0)
+    vel_list.append(0)
 
-    return a_s, b_s, c_s, d_s, e, f
+    return accel_list, vel_list, a_s, b_s, c_s, d_s, e, f
 
 def calc_spline(num_sec, rx_selected, ry_selected, time_list):
     """calculate splines for x and y"""
-    a_xs, b_xs, c_xs, d_xs, e_x, f_x = calc_spline_single(num_sec, rx_selected, time_list)
-    a_ys, b_ys, c_ys, d_ys, e_y, f_y = calc_spline_single(num_sec, ry_selected, time_list)
-    return [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]]
+    accel_x, vel_x, a_xs, b_xs, c_xs, d_xs, e_x, f_x = calc_spline_single(num_sec, rx_selected, time_list)
+    accel_y, vel_y, a_ys, b_ys, c_ys, d_ys, e_y, f_y = calc_spline_single(num_sec, ry_selected, time_list)
+    return [[accel_x, vel_x, a_xs, b_xs, c_xs, d_xs, e_x, f_x], [accel_y, vel_y, a_ys, b_ys, c_ys, d_ys, e_y, f_y]]
 
 
 def get_positions(a_s, b_s, c_s, d_s, e, f, time_list, time, num_sec):
@@ -350,7 +354,7 @@ def get_positions(a_s, b_s, c_s, d_s, e, f, time_list, time, num_sec):
             index = i
     
     # return the position
-    if index == num_sec: 
+    if index == num_sec-1: 
         return a_s[index] * time**5 + b_s[index] * time**4 + c_s[index] * time**3 + d_s[index] * time**2 + e * time + f
     else:
         return a_s[index] * time**3 + b_s[index] * time**2 + c_s[index] * time + d_s[index]
@@ -409,10 +413,6 @@ def main():
     end_time = time.time()
     print("The total time for A* path planner is " + str(float(end_time - start_time)))
 
-    #rx = np.linspace(sx, gx, 100).tolist()
-    #rx.reverse()
-    #ry = np.linspace(sy, gy, 100).tolist()
-    #ry.reverse()
     total_path_length = calc_total_dist(rx, ry, sx, sy, gx, gy)
     assert (len(rx) == len(ry))
     print("The distance of the planned path is " + str(total_path_length))
@@ -430,36 +430,20 @@ def main():
     index_list = select_index(rx, ry, num_sec)
 
     rx_selected, ry_selected, time_selected = get_data(rx, ry, time_list, index_list)
-    #print(time_selected)
     # rx_selected, ry_selected, time_selected are all from goal to starting point
-    rx_selected.reverse()
-    ry_selected.reverse()
-    time_selected.reverse()
-    [[a_xs, b_xs, c_xs, d_xs, e_x, f_x], [a_ys, b_ys, c_ys, d_ys, e_y, f_y]] = calc_spline(num_sec, rx_selected, ry_selected, time_selected)
-    print(time_selected)
-    print(rx_selected)
-    print(ry_selected)
-    print(str(a_xs[1]) + " " + str(a_ys[1]))
-    print(str(b_xs[1]) + " " + str(b_ys[1]))
-    print(str(c_xs[1]) + " " + str(c_ys[1]))
-    print(str(d_xs[1]) + " " + str(d_ys[1]))
-    #print(e_x)
-    #print(f_x)
-    #print(a_xs)
-    times = np.linspace(0, 0.5, 50)
+    rx_selected.reverse() #len(rx_selected) = num_sec + 1
+    ry_selected.reverse() #len(ry_selected) = num_sec + 1
+    time_selected.reverse() #len(time_selected) = num_sec + 1
+    [[accel_x, vel_x, a_xs, b_xs, c_xs, d_xs, e_x, f_x], [accel_y, vel_y, a_ys, b_ys, c_ys, d_ys, e_y, f_y]] = calc_spline(num_sec, rx_selected, ry_selected, time_selected)
+    times = np.linspace(t_start,  t_final, 20)
     xs = []
     ys = []
-    #x = get_positions(a_xs, b_xs, c_xs, d_xs, e_x, f_x, time_selected, 0.01, num_sec)
-    #y = get_positions(a_ys, b_ys, c_ys, d_ys, e_y, f_y, time_selected, 0.01, num_sec)
+
     #print(str(x) + " " + str(y))
     for t in times:
         xs.append(get_positions(a_xs, b_xs, c_xs, d_xs, e_x, f_x, time_selected, t, num_sec))
         ys.append(get_positions(a_ys, b_ys, c_ys, d_ys, e_y, f_y, time_selected, t, num_sec))
         
-
-
-
-
         # see if it is overlapped by obstacles
 
 
@@ -468,9 +452,8 @@ def main():
         plt.xlim(-10, 70)
         plt.ylim(-10, 70)
         plt.plot(rx, ry, "-r")
- 
-        plt.plot(xs, ys, "ro")
         plt.plot(rx_selected, ry_selected, "go")
+        plt.plot(xs, ys, "ro")
         plt.pause(0.001)
         plt.show()
 
