@@ -9,4 +9,4 @@ Smoothing strategy is as follows
 
 1. Interpolation 1 point between each pair of neighboring waypoints
 2. Path smoothing as follows
-
+![avatar](path_smoothing_strategy.png)
