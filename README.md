@@ -8,5 +8,5 @@ Featuring path smoother for A* and D* algorithm
 Smoothing strategy is as follows
 
 1. Interpolation 1 point between each pair of neighboring waypoints
-2. Path smoothing as follows
+2. Path smoothing is as follows
 ![avatar](path_smoothing_strategy.png)
